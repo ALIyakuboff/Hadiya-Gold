@@ -91,6 +91,7 @@ function App() {
     return (
       <div className="splash-screen">
         <div className="splash-content">
+          <img src="/logo.jpg" alt="Logo" className="splash-logo-img" />
           <div className="splash-logo">Hadiya Gold</div>
           <div className="splash-loader"><div className="splash-loader-bar"></div></div>
           <p style={{ marginTop: '16px', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Tizim yuklanmoqda...</p>
@@ -107,8 +108,11 @@ function App() {
         <div className="mobile-menu-overlay" onClick={() => setIsMobileMenuOpen(false)} />
       )}
       <nav className={`sidebar glass ${isMobileMenuOpen ? 'open' : ''}`}>
-        <div className="logo" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2 className="gold-text">Hadiya Gold</h2>
+        <div className="logo" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <img src="/logo.jpg" alt="Logo" style={{ width: '40px', height: '40px', borderRadius: '50%', border: '2px solid var(--primary)' }} />
+            <h2 className="gold-text">Hadiya Gold</h2>
+          </div>
           <button className="mobile-close-btn" onClick={() => setIsMobileMenuOpen(false)}><Lucide.X size={24} /></button>
         </div>
         <nav className="nav-links">
@@ -667,6 +671,9 @@ function Savdo({ data, searchQuery, onRefresh, currentUser }: { data: AppData, s
       <div id="thermal-receipt" style={{ display: 'none' }}>
         {lastReceipt && (
           <div className="receipt-content">
+            <div style={{ textAlign: 'center', marginBottom: '10px' }}>
+              <img src="/logo.jpg" style={{ width: '60px', height: '60px', borderRadius: '50%', objectFit: 'cover' }} />
+            </div>
             <h2>{data.settings.shopName}</h2>
             <p>{data.settings.address}</p>
             <p>{data.settings.phone}</p>
@@ -984,6 +991,9 @@ function Login({ onLogin }: { onLogin: (phone: string, pin: string) => boolean }
   return (
     <div className="login-screen" style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div className="modal-content glass" style={{ width: '350px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+          <img src="/logo.jpg" alt="Logo" style={{ width: '80px', height: '80px', borderRadius: '50%', border: '3px solid var(--primary)', objectFit: 'cover' }} />
+        </div>
         <h2 style={{ textAlign: 'center' }}>Hadiya Gold</h2>
         {error && <p style={{ color: 'var(--danger)' }}>{error}</p>}
         <input placeholder="Telefon" value={phone} onChange={e => setPhone(e.target.value)} style={{ width: '100%', marginTop: '15px' }} />

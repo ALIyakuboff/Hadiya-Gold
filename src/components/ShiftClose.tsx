@@ -47,19 +47,26 @@ export default function ShiftClose({ data, currentUser, onRefresh }: Props) {
     const doc = new jsPDF('p', 'mm', 'a4');
     const cx = doc.internal.pageSize.getWidth() / 2;
 
+    // Add Logo
+    try {
+      doc.addImage('/logo.jpg', 'JPEG', cx - 15, 8, 30, 30);
+    } catch (e) {
+      console.error('Logo add error:', e);
+    }
+
     doc.setFontSize(20);
-    doc.text(data.settings.shopName, cx, 22, { align: 'center' });
+    doc.text(data.settings.shopName, cx, 44, { align: 'center' });
     doc.setFontSize(10);
-    doc.text(data.settings.address, cx, 29, { align: 'center' });
-    doc.text(data.settings.phone, cx, 34, { align: 'center' });
+    doc.text(data.settings.address, cx, 51, { align: 'center' });
+    doc.text(data.settings.phone, cx, 56, { align: 'center' });
     doc.setFontSize(15);
-    doc.text('KUNLIK KASSA HISOBOTI', cx, 44, { align: 'center' });
+    doc.text('KUNLIK KASSA HISOBOTI', cx, 66, { align: 'center' });
     doc.setFontSize(10);
-    doc.text(`Sana: ${nowStr}`, cx, 51, { align: 'center' });
-    doc.text(`Yopdi: ${currentUser.name}`, cx, 56, { align: 'center' });
+    doc.text(`Sana: ${nowStr}`, cx, 73, { align: 'center' });
+    doc.text(`Yopdi: ${currentUser.name}`, cx, 78, { align: 'center' });
 
     autoTable(doc, {
-      startY: 64,
+      startY: 86,
       head: [["Ko'rsatkich", 'Summa']],
       body: [
         ['Jami Savdo', fmtUZS(totals.sales)],
@@ -102,6 +109,9 @@ export default function ShiftClose({ data, currentUser, onRefresh }: Props) {
       .label{font-weight:bold;color:#666}.val{font-weight:700}
       .total{background:#fff8e1;padding:12px;border-radius:8px;margin-top:12px;display:flex;justify-content:space-between}
       </style></head><body>
+      <div style="text-align:center;margin-bottom:15px">
+        <img src="/logo.jpg" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:2px solid #d4af37">
+      </div>
       <h2>${data.settings.shopName}</h2>
       <p style="text-align:center;color:#888">${data.settings.address} | ${data.settings.phone}</p>
       <h3>KUNLIK KASSA HISOBOTI</h3>
