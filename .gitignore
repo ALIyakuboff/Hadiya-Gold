@@ -1,0 +1,46 @@
+# Dependency directories
+node_modules/
+jspdf-autotable/
+dist/
+dist-ssr/
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS metadata
+.DS_Store
+Thumbs.db
+
+# Mobile directories (Capacitor)
+android/
+ios/
+www/
+capacitor.config.ts.json
+
+# Backend specific
+server/node_modules/
+server/.env
+server/dist/
+prisma/dev.db

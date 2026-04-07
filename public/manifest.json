@@ -1,0 +1,33 @@
+{
+  "name": "Hadiya Gold - Tilla Do'koni",
+  "short_name": "HadiyaGold",
+  "description": "Zargarlik buyumlari va oltin hisob-kitob tizimi",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f0f0f",
+  "theme_color": "#d4af37",
+  "icons": [
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Yangi Sotuv",
+      "short_name": "Sotuv",
+      "description": "Tezkor sotuv bo'limi",
+      "url": "/?tab=Savdo",
+      "icons": [{ "src": "/icon-512.png", "sizes": "512x512" }]
+    },
+    {
+      "name": "Sklad",
+      "short_name": "Sklad",
+      "description": "Omborxonani ko'rish",
+      "url": "/?tab=Sklad",
+      "icons": [{ "src": "/icon-512.png", "sizes": "512x512" }]
+    }
+  ]
+}
