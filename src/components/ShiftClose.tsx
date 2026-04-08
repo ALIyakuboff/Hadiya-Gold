@@ -5,7 +5,6 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { AppData, Shift } from '../types';
 import { saveShift, fmtUZS, getLocalDate, fmtLocalDateTime } from '../store';
-import { sendTelegramMessage, sendTelegramDocument } from '../telegram';
 
 const SHIFT_PASS = '7777';
 
@@ -95,8 +94,28 @@ export default function ShiftClose({ data, currentUser, onRefresh }: Props) {
 
     const pdfBlob = doc.output('blob');
     const msg = `💰 <b>KUNLIK KASSA YOPILDI</b>\nSana: ${nowStr}\nSmena yopuvchi: ${currentUser.name}\n\nJami Savdo: ${fmtUZS(totals.sales)}\nNaqd Tushum: ${fmtUZS(totals.cash)}\nKarta Tushum: ${fmtUZS(totals.card)}\nNasiya (Sotuv): ${fmtUZS(totals.nasiya)}\nXarajatlar: ${fmtUZS(totals.expenses)}\n\n<b>SOF TUSHUM: ${fmtUZS(net)}</b>`;
-    sendTelegramMessage(msg);
-    sendTelegramDocument(pdfBlob, `kassa_${today}.pdf`, "Kunlik savdo hamda hisobot fayli");
+
+    // PDF ni base64 ga o'girish va bot server orqali yuborish
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const base64 = (reader.result as string).split(',')[1];
+      try {
+        const resp = await fetch('http://localhost:3001/api/send-report', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: msg, pdfBase64: base64, filename: `kassa_${today}.pdf` }),
+        });
+        const result = await resp.json();
+        if (result.ok) {
+          console.log(`✅ Hisobot ${result.sent} ta Menejerga yuborildi.`);
+        } else {
+          console.warn('Bot yuborish xatosi:', result.error);
+        }
+      } catch (e) {
+        console.error('Bot server bilan aloqa yo\'q:', e);
+      }
+    };
+    reader.readAsDataURL(pdfBlob);
 
     doc.save(`kassa_${today}.pdf`);
 

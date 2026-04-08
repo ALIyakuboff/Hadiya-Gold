@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "vite",
+    "bot": "node bot-server.js",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "mobile:build": "npm run build && npx cap sync",
@@ -28,11 +29,14 @@
   "dependencies": {
     "@capacitor/core": "^8.3.0",
     "@google/generative-ai": "^0.24.1",
+    "cors": "^2.8.6",
     "date-fns": "^4.1.0",
+    "express": "^5.2.1",
     "html5-qrcode": "^2.3.8",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.7",
     "lucide-react": "^1.7.0",
+    "node-telegram-bot-api": "^0.67.0",
     "qrcode.react": "^4.2.0",
     "recharts": "^3.8.1"
   }

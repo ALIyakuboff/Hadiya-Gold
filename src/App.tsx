@@ -54,12 +54,30 @@ function App() {
     localStorage.setItem('hadiya_theme', theme);
   }, [theme]);
 
-  // Init telegram bot to listen to commands
-  useEffect(() => {
-    initTelegramBot();
-  }, []);
+  // Sync data to the standalone bot server
+  const syncToBot = async (appData = data) => {
+    try {
+      await fetch('http://localhost:3001/api/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          users: appData.users,
+          debts: appData.debts,
+          sales: appData.sales,
+        }),
+      });
+    } catch (_) { /* Bot server may not be running */ }
+  };
 
-  const refreshData = () => setData(loadData());
+  useEffect(() => {
+    if (currentUser) syncToBot();
+  }, [currentUser]);
+
+  const refreshData = () => {
+    const newData = loadData();
+    setData(newData);
+    if (currentUser) syncToBot(newData);
+  };
 
   const handleLogin = (phone: string, pin: string) => {
     const cleanInputPhone = phone.replace(/\D/g, '');

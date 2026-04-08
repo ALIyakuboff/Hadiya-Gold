@@ -1,0 +1,24 @@
+{
+  "users": [
+    {
+      "id": "1",
+      "name": "Menejer",
+      "phone": "+998901234567",
+      "pin": "4567",
+      "role": "Manager",
+      "dailySales": 0,
+      "monthlySales": 0
+    },
+    {
+      "id": "2",
+      "name": "Sotuvchi 1",
+      "phone": "+998001112233",
+      "pin": "1111",
+      "role": "Staff",
+      "dailySales": 0,
+      "monthlySales": 0
+    }
+  ],
+  "debts": [],
+  "sales": []
+}

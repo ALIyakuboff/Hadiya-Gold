@@ -38,8 +38,16 @@ export const sendTelegramDocument = async (pdfBlob: Blob, filename: string, capt
   }
 };
 
+const getChatStates = () => JSON.parse(localStorage.getItem('tg_chat_states') || '{}');
+const setChatState = (chatId: string, state: any) => {
+  const states = getChatStates();
+  if (state === null) delete states[chatId];
+  else states[chatId] = state;
+  localStorage.setItem('tg_chat_states', JSON.stringify(states));
+};
+
 export const initTelegramBot = () => {
-  setInterval(async () => {
+  const interval = setInterval(async () => {
     try {
       const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getUpdates?offset=${lastUpdateId + 1}`);
       const data = await res.json();
@@ -50,6 +58,8 @@ export const initTelegramBot = () => {
           if (!msg) continue;
           
           const chatId = msg.chat.id.toString();
+          const chatStates = getChatStates();
+          const currentState = chatStates[chatId];
 
           // Handle Contact sharing for Authentication
           if (msg.contact && msg.contact.phone_number) {
@@ -57,7 +67,6 @@ export const initTelegramBot = () => {
             if (!phone.startsWith('+')) phone = '+' + phone;
 
             const appData = loadData();
-            // remove non-digits for comparison
             const cleanSource = phone.replace(/\D/g, '');
             const user = appData.users.find(u => {
               const uClean = u.phone.replace(/\D/g, '');
@@ -65,20 +74,15 @@ export const initTelegramBot = () => {
             });
 
             if (user) {
-              const botUsers = JSON.parse(localStorage.getItem('tg_users') || '{}');
-              botUsers[chatId] = { role: user.role, userId: user.id };
-              localStorage.setItem('tg_users', JSON.stringify(botUsers));
-
-              if (user.role === 'Manager') {
-                setChatId(chatId); // Main alerts will go to latest logged manager
-              }
+              // Transition to AWAITING_PIN state
+              setChatState(chatId, { step: 'AWAITING_PIN', userId: user.id, phone: phone });
 
               await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                   chat_id: chatId, 
-                  text: `✅ Tabriklaymiz, <b>${user.name}</b>! Siz muvaffaqiyatli ulindingiz.\nSizning rolingiz: <b>${user.role === 'Manager' ? 'Menejer' : 'Sotuvchi (Hodim)'}</b>\n\nQuyidagi komandalardan foydalanishingiz mumkin:\n${user.role === 'Manager' ? '/debts - Nasiyalar ro\'yxati\n' : ''}/mening_natijam - O'z sotuvlaringizni ko'rish`,
+                  text: `✅ Raqam topildi: <b>${user.name}</b>\n\nIltimos, davom etish uchun <b>PIN kodni</b> kiriting:`,
                   parse_mode: 'HTML',
                   reply_markup: { remove_keyboard: true }
                 })
@@ -96,10 +100,47 @@ export const initTelegramBot = () => {
           const text = msg.text;
           if (!text) continue;
 
+          // Check if awaiting PIN
+          if (currentState && currentState.step === 'AWAITING_PIN') {
+            const appData = loadData();
+            const user = appData.users.find(u => u.id === currentState.userId);
+            
+            if (user && user.pin === text.trim()) {
+              // PIN correct - Authenticate
+              const botUsers = JSON.parse(localStorage.getItem('tg_users') || '{}');
+              botUsers[chatId] = { role: user.role, userId: user.id };
+              localStorage.setItem('tg_users', JSON.stringify(botUsers));
+
+              if (user.role === 'Manager') {
+                setChatId(chatId);
+              }
+
+              setChatState(chatId, null); // Clear state
+
+              await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                  chat_id: chatId, 
+                  text: `🎉 Muvaffaqiyatli ulandingiz, <b>${user.name}</b>!\nRo'lingiz: <b>${user.role === 'Manager' ? 'Menejer' : 'Sotuvchi'}</b>\n\nSiz endi tizim buyruqlaridan foydalanishingiz mumkin:\n${user.role === 'Manager' ? '/debts - Nasiyalar ro\'yxati\n' : ''}/mening_natijam - O'z natijalaringizni ko'rish`,
+                  parse_mode: 'HTML'
+                })
+              });
+            } else {
+              await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chat_id: chatId, text: "❌ Noto'g'ri PIN kod. Iltimos qaytadan urining yoki /start ni bosing." })
+              });
+            }
+            continue;
+          }
+
           const botUsers = JSON.parse(localStorage.getItem('tg_users') || '{}');
           const botUser = botUsers[chatId];
 
           if (text === '/start') {
+            setChatState(chatId, null); // Reset state
             await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -165,4 +206,7 @@ export const initTelegramBot = () => {
       // ignore network errors for polling to prevent console spam
     }
   }, 4000); // query every 4 seconds to avoid hitting rate limits
+  return interval;
 };
+
+
