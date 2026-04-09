@@ -57,8 +57,7 @@ function App() {
   // Sync data to the standalone bot server
   const syncToBot = async (appData = data) => {
     try {
-      const serverUrl = window.location.hostname === 'localhost' ? 'http://localhost:3001' : `${window.location.protocol}//${window.location.hostname}:3001`;
-      await fetch(`${serverUrl}/api/sync`, {
+      await fetch('/api/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -73,8 +72,7 @@ function App() {
   useEffect(() => {
     const initData = async () => {
       try {
-        const serverUrl = window.location.hostname === 'localhost' ? 'http://localhost:3001' : `${window.location.protocol}//${window.location.hostname}:3001`;
-        const resp = await fetch(`${serverUrl}/api/get-data`);
+        const resp = await fetch('/api/get-data');
         const remoteData = await resp.json();
         if (remoteData && remoteData.users) {
           mergeRemoteData(remoteData);
