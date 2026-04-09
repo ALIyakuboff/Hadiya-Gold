@@ -42,9 +42,14 @@ function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
     const saved = localStorage.getItem('hadiya_session');
     if (saved) {
-      const u = JSON.parse(saved);
-      if (u.name === 'Manager (Admin)' || u.name === 'Admin') u.name = 'Menejer';
-      return u;
+      try {
+        const u = JSON.parse(saved);
+        if (u.name === 'Manager (Admin)' || u.name === 'Admin') u.name = 'Menejer';
+        return u;
+      } catch (e) {
+        console.error('Session data error:', e);
+        localStorage.removeItem('hadiya_session');
+      }
     }
     return null;
   });
