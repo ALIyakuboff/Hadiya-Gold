@@ -8,10 +8,10 @@ import {
 } from 'recharts';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import { 
-  loadData, addProduct, sellProduct, updateGoldRate, 
+  loadData, sanitizeData, addProduct, sellProduct, updateGoldRate, 
   addPaymentToDebt, updateSettings, exportData, importData,
   updateProduct, deleteProduct, fmtUZS, getLocalDate, addUser, updateUser, deleteUser,
-  fmtLocalDateTime, mergeRemoteData
+  fmtLocalDateTime, saveData
 } from './store';
 import { initTelegramBot } from './telegram';
 import { 
@@ -32,7 +32,8 @@ function App() {
     const params = new URLSearchParams(window.location.search);
     return (params.get('tab') as Tab) || 'Dashboard';
   });
-  const [data, setData] = useState<AppData>(loadData());
+  const [data, setData] = useState<AppData>(() => loadData());
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     return (localStorage.getItem('hadiya_theme') as 'dark' | 'light') || 'dark';
@@ -60,18 +61,17 @@ function App() {
   }, [theme]);
 
   // Sync data to the standalone bot server
-  const syncToBot = async (appData = data) => {
+  const syncToBot = async (appData: AppData) => {
     try {
+      // Every time we sync to bot, we also keep a local backup
+      saveData(appData);
+      
       await fetch('/api/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          users: appData.users,
-          debts: appData.debts,
-          sales: appData.sales,
-        }),
+        body: JSON.stringify(appData),
       });
-    } catch (_) { /* Bot server may not be running */ }
+    } catch (e) { console.error('Sync error:', e); }
   };
 
   useEffect(() => {
@@ -79,23 +79,24 @@ function App() {
       try {
         const resp = await fetch('/api/get-data');
         const remoteData = await resp.json();
-        if (remoteData && remoteData.users) {
-          mergeRemoteData(remoteData);
-          setData(loadData());
-        }
-      } catch (e) { console.warn('Server bilan bog\'lanishda xatolik (sync pull):', e); }
+        const sanitized = sanitizeData(remoteData);
+        setData(sanitized);
+        saveData(sanitized);
+      } catch (e) { 
+        console.warn('Server bilan bog\'lanishda xatolik (sync pull):', e);
+        // Fallback to local if server is unreachable
+        setData(loadData());
+      } finally {
+        setIsLoading(false);
+      }
     };
     initData();
   }, []);
 
-  useEffect(() => {
-    if (currentUser) syncToBot();
-  }, [currentUser]);
-
-  const refreshData = () => {
-    const newData = loadData();
-    setData(newData);
-    if (currentUser) syncToBot(newData);
+  const refreshData = (updatedData?: AppData) => {
+    const activeData = updatedData || loadData();
+    setData(activeData);
+    if (currentUser) syncToBot(activeData);
   };
 
   const handleLogin = (phone: string, pin: string) => {
@@ -124,14 +125,16 @@ function App() {
     return <Login onLogin={handleLogin} />;
   }
 
-  if (showSplash) {
+  if (showSplash || isLoading) {
     return (
       <div className="splash-screen">
         <div className="splash-content">
           <img src="/logo.jpg" alt="Logo" className="splash-logo-img" />
           <div className="splash-logo">Hadiya Gold</div>
           <div className="splash-loader"><div className="splash-loader-bar"></div></div>
-          <p style={{ marginTop: '16px', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Tizim yuklanmoqda...</p>
+          <p style={{ marginTop: '16px', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+            {isLoading ? 'Markaziy baza bilan bog\'lanilmoqda...' : 'Tizim yuklanmoqda...'}
+          </p>
         </div>
       </div>
     );

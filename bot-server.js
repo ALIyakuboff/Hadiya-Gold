@@ -43,10 +43,12 @@ app.use(express.json({ limit: '50mb' }));
 // Web app sends data here to keep bot in sync
 app.post('/api/sync', (req, res) => {
   try {
-    const { users, debts, sales } = req.body;
-    const data = { users: users || [], debts: debts || [], sales: sales || [] };
+    const data = req.body;
+    if (!data || typeof data !== 'object') {
+       return res.status(400).json({ ok: false, error: 'Mashurotlar noto\'g\'ri formatda' });
+    }
     fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
-    console.log(`[Sync] ${users?.length || 0} foydalanuvchi, ${debts?.length || 0} nasiya yangilandi.`);
+    console.log(`[Sync] Barcha ma'lumotlar yangilandi. (${Object.keys(data).length} ta bo'lim)`);
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });

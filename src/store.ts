@@ -26,78 +26,76 @@ const DEFAULT_DATA: AppData = {
   }
 };
 
+export const sanitizeData = (parsed: any): AppData => {
+  const exRate = parsed?.exchangeRateUZS || 12800;
+  return {
+    ...DEFAULT_DATA,
+    ...parsed,
+    products: (parsed?.products || []).map((p: any) => ({
+      ...p,
+      category: p.category || SKLAD_CATEGORIES[0],
+      image: p.image || '',
+      costPriceUZS: p.costPriceUZS ?? (p.costPriceUSD ? p.costPriceUSD * exRate : undefined),
+      status: p.status || 'InStock',
+      parts: p.parts || [],
+    })),
+    sales: (parsed?.sales || []).map((s: any) => ({
+      ...s,
+      sellerName: s.sellerName || s.staffName || '',
+      soldPriceUZS: s.soldPriceUZS ?? (s.soldPriceUSD ? s.soldPriceUSD * exRate : 0),
+      costPriceUZS: s.costPriceUZS ?? (s.costPriceUSD ? s.costPriceUSD * exRate : 0),
+      cashAmountUZS: s.cashAmountUZS ?? (s.cashAmountUSD ? s.cashAmountUSD * exRate : 0),
+      cardAmountUZS: s.cardAmountUZS ?? 0,
+      nasiyaAmountUZS: s.nasiyaAmountUZS ?? (s.nasiyaAmountUSD ? s.nasiyaAmountUSD * exRate : 0),
+      paymentType: s.paymentType || 'Cash',
+    })),
+    debts: (parsed?.debts || []).map((d: any) => ({
+      ...d,
+      totalUZS: d.totalUZS ?? (d.totalUSD ? d.totalUSD * exRate : 0),
+      paidUZS: d.paidUZS ?? (d.paidUSD ? d.paidUSD * exRate : 0),
+      payments: (d.payments || []).map((pay: any) => ({
+        ...pay,
+        amountUZS: pay.amountUZS ?? (pay.amountUSD ? pay.amountUSD * exRate : 0),
+        paymentType: pay.paymentType || 'Cash',
+      }))
+    })),
+    users: (parsed?.users || []).map((u: any) => {
+      const defaultUser = DEFAULT_DATA.users.find(du => du.id === u.id);
+      let name = u.name;
+      if (name === 'Manager (Admin)' || name === 'Admin') name = 'Menejer';
+      return { ...u, name, phone: u.phone || defaultUser?.phone || '', pin: u.pin || defaultUser?.pin || '' };
+    }),
+    investors: (parsed?.investors || []).map((inv: any) => ({
+      ...inv,
+      currency: inv.currency || 'USD',
+      amount: inv.amount ?? inv.goldGrams ?? inv.amountUSD ?? 0,
+    })),
+    expenses: (parsed?.expenses || []).map((ex: any) => ({
+      ...ex,
+      amountUZS: ex.amountUZS ?? (ex.amountUSD ? ex.amountUSD * exRate : 0),
+    })),
+    shifts: parsed?.shifts || [],
+    goldRateUZS: parsed?.goldRateUZS || (parsed?.goldRateUSD ? parsed?.goldRateUSD * exRate : DEFAULT_DATA.goldRateUZS),
+    goldRateHistory: parsed?.goldRateHistory || [{ rate: DEFAULT_DATA.goldRateUZS, date: new Date().toISOString() }],
+    exchangeRateUZS: exRate,
+    settings: parsed?.settings || DEFAULT_DATA.settings,
+  };
+};
+
 export const loadData = (): AppData => {
   const stored = localStorage.getItem(STORAGE_KEY);
   if (stored) {
     try {
-      const parsed = JSON.parse(stored);
-      const exRate = parsed.exchangeRateUZS || 12800;
-
-      return {
-        ...DEFAULT_DATA,
-        ...parsed,
-        products: (parsed.products || []).map((p: any) => ({
-          ...p,
-          category: p.category || SKLAD_CATEGORIES[0],
-          image: p.image || '',
-          // Migrate: eski costPriceUSD -> costPriceUZS
-          costPriceUZS: p.costPriceUZS ?? (p.costPriceUSD ? p.costPriceUSD * exRate : undefined),
-          status: p.status || 'InStock',
-          parts: p.parts || [],
-        })),
-        sales: (parsed.sales || []).map((s: any) => ({
-          ...s,
-          sellerName: s.sellerName || s.staffName || '',
-          // Migrate $->UZS
-          soldPriceUZS: s.soldPriceUZS ?? (s.soldPriceUSD ? s.soldPriceUSD * exRate : 0),
-          costPriceUZS: s.costPriceUZS ?? (s.costPriceUSD ? s.costPriceUSD * exRate : 0),
-          cashAmountUZS: s.cashAmountUZS ?? (s.cashAmountUSD ? s.cashAmountUSD * exRate : 0),
-          cardAmountUZS: s.cardAmountUZS ?? 0,
-          nasiyaAmountUZS: s.nasiyaAmountUZS ?? (s.nasiyaAmountUSD ? s.nasiyaAmountUSD * exRate : 0),
-          paymentType: s.paymentType || 'Cash',
-        })),
-        debts: (parsed.debts || []).map((d: any) => ({
-          ...d,
-          totalUZS: d.totalUZS ?? (d.totalUSD ? d.totalUSD * exRate : 0),
-          paidUZS: d.paidUZS ?? (d.paidUSD ? d.paidUSD * exRate : 0),
-          payments: (d.payments || []).map((pay: any) => ({
-            ...pay,
-            amountUZS: pay.amountUZS ?? (pay.amountUSD ? pay.amountUSD * exRate : 0),
-            paymentType: pay.paymentType || 'Cash',
-          }))
-        })),
-        users: (parsed.users || []).map((u: any) => {
-          const defaultUser = DEFAULT_DATA.users.find(du => du.id === u.id);
-          let name = u.name;
-          if (name === 'Manager (Admin)' || name === 'Admin') name = 'Menejer';
-          return { ...u, name, phone: u.phone || defaultUser?.phone || '', pin: u.pin || defaultUser?.pin || '' };
-        }),
-        investors: (parsed.investors || []).map((inv: any) => ({
-          id: inv.id,
-          name: inv.name,
-          date: inv.date,
-          // Migrate eski format
-          currency: inv.currency || 'USD',
-          amount: inv.amount ?? inv.goldGrams ?? inv.amountUSD ?? 0,
-        })),
-        expenses: (parsed.expenses || []).map((ex: any) => ({
-          ...ex,
-          amountUZS: ex.amountUZS ?? (ex.amountUSD ? ex.amountUSD * exRate : 0),
-        })),
-        shifts: parsed.shifts || [],
-        goldRateUZS: parsed.goldRateUZS || (parsed.goldRateUSD ? parsed.goldRateUSD * exRate : DEFAULT_DATA.goldRateUZS),
-        goldRateHistory: parsed.goldRateHistory || [{ rate: DEFAULT_DATA.goldRateUZS, date: new Date().toISOString() }],
-        exchangeRateUZS: exRate,
-        settings: parsed.settings || DEFAULT_DATA.settings,
-      };
+      return sanitizeData(JSON.parse(stored));
     } catch (e) {
-      console.error('Failed to load data', e);
+      console.error('Failed to load local data', e);
     }
   }
   return DEFAULT_DATA;
 };
 
 export const saveData = (data: AppData) => {
+  // We keep localStorage only as a temporary backup
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 };
 
