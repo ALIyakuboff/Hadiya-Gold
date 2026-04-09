@@ -79,6 +79,7 @@ export interface Sale {
   nasiyaAmountUZS: number;   // Nasiyaga qolgan qism (UZS)
   paymentType: PaymentType;
   date: string;
+  isReturned?: boolean;
 }
 
 export interface Payment {
@@ -142,6 +143,14 @@ export interface Shift {
   totalExpensesUZS: number;
 }
 
+export interface InboundMoney {
+  id: string;
+  fromWho: string; // Kimdan
+  source: string;  // Qayerdan
+  amountUZS: number;
+  date: string;
+}
+
 export interface AppSettings {
   shopName: string;
   phone: string;
@@ -159,5 +168,6 @@ export interface AppData {
   goldRateUZS: number;       // 1g oltin = ? so'm
   exchangeRateUZS: number;   // 1 USD = ? so'm
   goldRateHistory: GoldRateEntry[];
+  inboundMoney: InboundMoney[];
   settings: AppSettings;
 }

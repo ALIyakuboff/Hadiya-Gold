@@ -13,7 +13,8 @@ import {
   updateProduct, deleteProduct, fmtUZS, getLocalDate, addUser, updateUser, deleteUser,
   fmtLocalDateTime, saveData
 } from './store';
-import { initTelegramBot } from './telegram';
+// Bot initialization is now handled by the server (bot-server.js)
+// import { initTelegramBot } from './telegram';
 import { 
   AppData, Product, Sale, Debt, User, ProductType, Expense, Payment, Investor,
   SkladCategory, SKLAD_CATEGORIES, PaymentType
@@ -24,8 +25,9 @@ import ExpensesTab from './components/ExpensesTab';
 import InvestorsTab from './components/InvestorsTab';
 import HistoryTab from './components/HistoryTab';
 import ShiftClose from './components/ShiftClose';
+import InboundTab from './components/InboundTab';
 
-type Tab = 'Dashboard' | 'Sklad' | 'Savdo' | 'Nasiya' | 'Ishchilar' | 'Sarmoyadorlar' | 'Tarix' | 'Xarajatlar' | 'Sozlamalar';
+type Tab = 'Dashboard' | 'Sklad' | 'Savdo' | 'Nasiya' | 'Ishchilar' | 'Sarmoyadorlar' | 'Tarix' | 'Xarajatlar' | 'Pul Keldi' | 'Sozlamalar';
 
 function App() {
   const [activeTab, setActiveTab] = useState<Tab>(() => {
@@ -84,13 +86,36 @@ function App() {
         saveData(sanitized);
       } catch (e) { 
         console.warn('Server bilan bog\'lanishda xatolik (sync pull):', e);
-        // Fallback to local if server is unreachable
         setData(loadData());
       } finally {
         setIsLoading(false);
       }
     };
     initData();
+
+    // Auto-sync from server every 15 seconds
+    const pollInterval = setInterval(async () => {
+      if (document.hidden) return; // Don't poll if tab is inactive
+      try {
+        const resp = await fetch('/api/get-data');
+        const remoteData = await resp.json();
+        const sanitized = sanitizeData(remoteData);
+        
+        // Only update if something actually changed on server
+        // Simple comparison by stringifying (not perfect but works for this scale)
+        const currentLocal = JSON.stringify(loadData());
+        const incoming = JSON.stringify(sanitized);
+        
+        if (currentLocal !== incoming) {
+          setData(sanitized);
+          saveData(sanitized);
+        }
+      } catch (e) {
+        console.log('Polling sync error:', e);
+      }
+    }, 15000);
+
+    return () => clearInterval(pollInterval);
   }, []);
 
   const refreshData = (updatedData?: AppData) => {
@@ -161,6 +186,7 @@ function App() {
           <NavItem icon={<Lucide.ShoppingCart size={22} />} label="Savdo" active={activeTab === 'Savdo'} onClick={() => { setActiveTab('Savdo'); setIsMobileMenuOpen(false); }} />
           <NavItem icon={<Lucide.History size={22} />} label="Sotuv Tarixi" active={activeTab === 'Tarix'} onClick={() => { setActiveTab('Tarix'); setIsMobileMenuOpen(false); }} />
           <NavItem icon={<Lucide.Wallet size={22} />} label="Nasiya" active={activeTab === 'Nasiya'} onClick={() => { setActiveTab('Nasiya'); setIsMobileMenuOpen(false); }} />
+          <NavItem icon={<Lucide.CircleDollarSign size={22} />} label="Pul Keldi" active={activeTab === 'Pul Keldi'} onClick={() => { setActiveTab('Pul Keldi'); setIsMobileMenuOpen(false); }} />
           {isManager && (
             <>
               <NavItem icon={<Lucide.TrendingDown size={22} />} label="Xarajatlar" active={activeTab === 'Xarajatlar'} onClick={() => { setActiveTab('Xarajatlar'); setIsMobileMenuOpen(false); }} />
@@ -218,6 +244,7 @@ function App() {
           {activeTab === 'Savdo' && <Savdo data={data} searchQuery={searchQuery} onRefresh={refreshData} currentUser={currentUser} />}
           {activeTab === 'Tarix' && <HistoryTab data={data} searchQuery={searchQuery} isManager={isManager} />}
           {activeTab === 'Nasiya' && <NasiyaTab data={data} searchQuery={searchQuery} onRefresh={refreshData} isManager={isManager} />}
+          {activeTab === 'Pul Keldi' && <InboundTab data={data} searchQuery={searchQuery} onRefresh={refreshData} />}
           {activeTab === 'Ishchilar' && isManager && <StaffTab data={data} onRefresh={refreshData} />}
           {activeTab === 'Xarajatlar' && isManager && <ExpensesTab data={data} onRefresh={refreshData} />}
           {activeTab === 'Sarmoyadorlar' && isManager && <InvestorsTab data={data} onRefresh={refreshData} />}

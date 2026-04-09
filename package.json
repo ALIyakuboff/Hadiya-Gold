@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "vite",
-    "bot": "node bot-server.js",
+    "server": "node server.js",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "mobile:build": "npm run build && npx cap sync",

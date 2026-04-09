@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import * as Lucide from 'lucide-react';
 import { AppData } from '../types';
-import { fmtUZS, getLocalDate, fmtLocalDateTime } from '../store';
+import { fmtUZS, getLocalDate, fmtLocalDateTime, returnSale } from '../store';
 
 export default function HistoryTab({ data, searchQuery, isManager }: { data: AppData, searchQuery: string, isManager: boolean }) {
   const today = getLocalDate(); // Toshkent vaqti YYYY-MM-DD
@@ -17,10 +17,11 @@ export default function HistoryTab({ data, searchQuery, isManager }: { data: App
     .slice()
     .reverse();
 
-  const totalUZS = filtered.reduce((sum, s) => sum + s.soldPriceUZS, 0);
-  const cashUZS = filtered.reduce((sum, s) => sum + s.cashAmountUZS, 0);
-  const cardUZS = filtered.reduce((sum, s) => sum + (s.cardAmountUZS || 0), 0);
-  const nasiyaUZS = filtered.reduce((sum, s) => sum + s.nasiyaAmountUZS, 0);
+  const validSales = filtered.filter(s => !s.isReturned);
+  const totalUZS = validSales.reduce((sum, s) => sum + s.soldPriceUZS, 0);
+  const cashUZS = validSales.reduce((sum, s) => sum + s.cashAmountUZS, 0);
+  const cardUZS = validSales.reduce((sum, s) => sum + (s.cardAmountUZS || 0), 0);
+  const nasiyaUZS = validSales.reduce((sum, s) => sum + s.nasiyaAmountUZS, 0);
 
   const paymentLabel = (type: string) => {
     const map: Record<string, string> = {
@@ -114,7 +115,25 @@ export default function HistoryTab({ data, searchQuery, isManager }: { data: App
                         {paymentLabel(s.paymentType)}
                       </span>
                     </td>
-                    <td style={{ fontWeight: 700, whiteSpace: 'nowrap' }}>{fmtUZS(s.soldPriceUZS)}</td>
+                    <td style={{ fontWeight: 700, whiteSpace: 'nowrap', color: s.isReturned ? 'var(--danger)' : 'inherit', textDecoration: s.isReturned ? 'line-through' : 'none' }}>
+                      {fmtUZS(s.soldPriceUZS)}
+                      {isManager && !s.isReturned && (
+                        <button 
+                          className="theme-btn" 
+                          style={{ marginLeft: '10px', padding: '4px', borderRadius: '6px', color: 'var(--danger)' }}
+                          onClick={() => {
+                            if (window.confirm("Ushbu mahsulot qaytarilganini tasdiqlaysizmi?")) {
+                              returnSale(s.id);
+                              window.location.reload(); // Refresh to see changes
+                            }
+                          }}
+                          title="Qaytarish"
+                        >
+                          <Lucide.RotateCcw size={14} />
+                        </button>
+                      )}
+                      {s.isReturned && <div style={{ fontSize: '0.65rem', color: 'var(--danger)', textDecoration: 'none' }}>Qaytarilgan</div>}
+                    </td>
                   </tr>
                 );
               })

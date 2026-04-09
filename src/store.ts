@@ -19,6 +19,7 @@ const DEFAULT_DATA: AppData = {
   goldRateHistory: [
     { rate: 850000, date: new Date().toISOString() }
   ],
+  inboundMoney: [],
   settings: {
     shopName: 'Hadiya Gold',
     phone: '+998 00 000 00 00',
@@ -78,6 +79,10 @@ export const sanitizeData = (parsed: any): AppData => {
     goldRateUZS: parsed?.goldRateUZS || (parsed?.goldRateUSD ? parsed?.goldRateUSD * exRate : DEFAULT_DATA.goldRateUZS),
     goldRateHistory: parsed?.goldRateHistory || [{ rate: DEFAULT_DATA.goldRateUZS, date: new Date().toISOString() }],
     exchangeRateUZS: exRate,
+    inboundMoney: (parsed?.inboundMoney || []).map((im: any) => ({
+      ...im,
+      amountUZS: im.amountUZS || 0,
+    })),
     settings: parsed?.settings || DEFAULT_DATA.settings,
   };
 };
@@ -125,6 +130,31 @@ export const sellProduct = (sale: Sale, buyerDebt?: Debt) => {
     staff.dailySales += 1;
     staff.monthlySales += 1;
   }
+  saveData(data);
+};
+
+export const returnSale = (saleId: string) => {
+  const data = loadData();
+  const sale = data.sales.find(s => s.id === saleId);
+  if (sale && !sale.isReturned) {
+    sale.isReturned = true;
+    const product = data.products.find(p => p.id === sale.productId);
+    if (product) {
+       product.status = 'InStock';
+    }
+    // Adjust staff stats
+    const staff = data.users.find(u => u.id === sale.staffId);
+    if (staff) {
+      staff.dailySales = Math.max(0, staff.dailySales - 1);
+      staff.monthlySales = Math.max(0, staff.monthlySales - 1);
+    }
+    saveData(data);
+  }
+};
+
+export const addInboundMoney = (entry: any) => {
+  const data = loadData();
+  data.inboundMoney.push(entry);
   saveData(data);
 };
 

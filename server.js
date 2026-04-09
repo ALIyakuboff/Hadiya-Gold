@@ -5,13 +5,26 @@ const fs = require('fs');
 const path = require('path');
 
 const BOT_TOKEN = process.env.BOT_TOKEN || '8721340914:AAG2eadcCeRHap3Pd2bQfMbMre7LewlfYEc';
-const DATA_FILE = path.join(__dirname, 'bot-data.json');
-const SESSIONS_FILE = path.join(__dirname, 'bot-sessions.json');
+const DATA_FILE = path.join(__dirname, 'data.json');
+const SESSIONS_FILE = path.join(__dirname, 'session-data.json');
 const PORT = 3001;
 
-// ==================== Data Management ====================
-
-const defaultData = { users: [], debts: [] };
+const defaultData = { 
+  products: [], 
+  sales: [], 
+  debts: [], 
+  users: [],
+  investors: [],
+  expenses: [],
+  shifts: [],
+  inboundMoney: [],
+  goldRateUZS: 850000,
+  settings: {
+     shopName: 'Hadiya Gold',
+     phone: '',
+     address: ''
+  }
+};
 
 const loadBotData = () => {
   try {
@@ -20,8 +33,18 @@ const loadBotData = () => {
   return defaultData;
 };
 
+const saveBotData = (data) => {
+  try {
+    fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
+    return true;
+  } catch (e) { console.error('Data save error:', e); return false; }
+};
+
 const saveSessions = (sessions) => {
-  try { fs.writeFileSync(SESSIONS_FILE, JSON.stringify(sessions, null, 2)); } catch (e) {}
+  try { 
+    fs.writeFileSync(SESSIONS_FILE, JSON.stringify(sessions, null, 2)); 
+    return true;
+  } catch (e) { return false; }
 };
 
 const loadSessions = () => {
@@ -35,7 +58,6 @@ const fmtUZS = (amount) =>
   new Intl.NumberFormat('uz-UZ').format(Math.round(amount)) + " so'm";
 
 // ==================== Express API ====================
-
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
@@ -47,9 +69,13 @@ app.post('/api/sync', (req, res) => {
     if (!data || typeof data !== 'object') {
        return res.status(400).json({ ok: false, error: 'Mashurotlar noto\'g\'ri formatda' });
     }
-    fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
-    console.log(`[Sync] Barcha ma'lumotlar yangilandi. (${Object.keys(data).length} ta bo'lim)`);
-    res.json({ ok: true });
+    const success = saveBotData(data);
+    if (success) {
+      console.log(`[Data Sync] Ma'lumotlar saqlandi. (${Object.keys(data).length} ta bo'lim) - ${new Date().toLocaleTimeString()}`);
+      res.json({ ok: true });
+    } else {
+      res.status(500).json({ ok: false, error: 'Faylga yozishda xatolik' });
+    }
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
   }
@@ -64,17 +90,39 @@ app.get('/api/get-data', (req, res) => {
   }
 });
 
-app.get('/api/status', (req, res) => {
-  const data = loadBotData();
-  res.json({ ok: true, users: data.users?.length || 0, debts: data.debts?.length || 0 });
+// Generic message sending (to managers)
+app.post('/api/send-message', async (req, res) => {
+  try {
+    const { message, chatId } = req.body;
+    let targetIds = [];
+    
+    if (chatId) {
+      targetIds = [chatId];
+    } else {
+      // Default: Find all manager chatIds
+      targetIds = Object.entries(sessions.users || {})
+        .filter(([_, u]) => u.role === 'Manager')
+        .map(([id]) => id);
+    }
+
+    if (targetIds.length === 0) {
+      return res.json({ ok: false, error: 'Menejer ulangan emas.' });
+    }
+
+    for (const id of targetIds) {
+      await bot.sendMessage(id, message, { parse_mode: 'HTML' });
+    }
+    res.json({ ok: true, sent: targetIds.length });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
 });
 
 // Send shift close report to all managers via Telegram
 app.post('/api/send-report', async (req, res) => {
   try {
     const { message, pdfBase64, filename } = req.body;
-    const data = loadBotData();
-
+    
     // Find all manager chatIds from sessions
     const managerChatIds = Object.entries(sessions.users || {})
       .filter(([_, u]) => u.role === 'Manager')
@@ -84,13 +132,14 @@ app.post('/api/send-report', async (req, res) => {
       return res.json({ ok: false, error: 'Menejer ulangan emas. Avval /start orqali kirish kerak.' });
     }
 
+    const pdfBuffer = pdfBase64 ? Buffer.from(pdfBase64, 'base64') : null;
+
     for (const chatId of managerChatIds) {
       // Send text message
       await bot.sendMessage(chatId, message, { parse_mode: 'HTML' });
 
       // Send PDF if provided
-      if (pdfBase64 && filename) {
-        const pdfBuffer = Buffer.from(pdfBase64, 'base64');
+      if (pdfBuffer && filename) {
         await bot.sendDocument(chatId, pdfBuffer, { caption: 'Kunlik kassa hisobot fayli 📄' }, { filename });
       }
     }
@@ -102,12 +151,7 @@ app.post('/api/send-report', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`✅ Bot API server: http://localhost:${PORT}`);
-});
-
 // ==================== Telegram Bot ====================
-
 const bot = new TelegramBot(BOT_TOKEN, { polling: true });
 let sessions = loadSessions();
 
@@ -115,6 +159,8 @@ let sessions = loadSessions();
 setInterval(() => saveSessions(sessions), 10000);
 
 console.log('🤖 Telegram bot ishga tushdi! @Hadiyagold_bot');
+
+// ==================== Express API ====================
 
 bot.on('message', async (msg) => {
   const chatId = msg.chat.id.toString();
@@ -272,5 +318,9 @@ async function handlePhoneInput(chatId, phone, data) {
 
 bot.on('polling_error', (error) => {
   console.error('[Polling xato]:', error.message);
+});
+
+app.listen(PORT, () => {
+  console.log(`✅ Bot API server: http://localhost:${PORT}`);
 });
 

@@ -25,14 +25,17 @@ export default function ShiftClose({ data, currentUser, onRefresh }: Props) {
   const todaySales = data.sales.filter(s => getLocalDate(s.date) === today);
   const todayExpenses = data.expenses.filter(e => getLocalDate(e.date) === today);
 
+  const inboundToday = data.inboundMoney ? data.inboundMoney.filter(i => getLocalDate(i.date) === today) : [];
+
   const totals = {
     sales: todaySales.reduce((s, x) => s + x.soldPriceUZS, 0),
     cash: todaySales.reduce((s, x) => s + x.cashAmountUZS, 0),
     card: todaySales.reduce((s, x) => s + (x.cardAmountUZS || 0), 0),
     nasiya: todaySales.reduce((s, x) => s + x.nasiyaAmountUZS, 0),
     expenses: todayExpenses.reduce((s, x) => s + x.amountUZS, 0),
+    inbound: inboundToday.reduce((s, x) => s + x.amountUZS, 0)
   };
-  const net = totals.cash + totals.card - totals.expenses;
+  const net = totals.cash + totals.card + totals.inbound - totals.expenses;
 
   const handleClose = () => { setShow(false); setPass(''); setStep('pass'); setPassError(''); };
 
@@ -71,6 +74,7 @@ export default function ShiftClose({ data, currentUser, onRefresh }: Props) {
         ['Jami Savdo', fmtUZS(totals.sales)],
         ['Naqd Tushum', fmtUZS(totals.cash)],
         ['Karta Tushum', fmtUZS(totals.card)],
+        ['Pul Keldi (Kirim)', fmtUZS(totals.inbound)],
         ['Nasiya (Savdo)', fmtUZS(totals.nasiya)],
         ['Xarajatlar', fmtUZS(totals.expenses)],
         ['SOF TUSHUM', fmtUZS(net)],
@@ -93,7 +97,7 @@ export default function ShiftClose({ data, currentUser, onRefresh }: Props) {
     }
 
     const pdfBlob = doc.output('blob');
-    const msg = `💰 <b>KUNLIK KASSA YOPILDI</b>\nSana: ${nowStr}\nSmena yopuvchi: ${currentUser.name}\n\nJami Savdo: ${fmtUZS(totals.sales)}\nNaqd Tushum: ${fmtUZS(totals.cash)}\nKarta Tushum: ${fmtUZS(totals.card)}\nNasiya (Sotuv): ${fmtUZS(totals.nasiya)}\nXarajatlar: ${fmtUZS(totals.expenses)}\n\n<b>SOF TUSHUM: ${fmtUZS(net)}</b>`;
+    const msg = `💰 <b>KUNLIK KASSA YOPILDI</b>\nSana: ${nowStr}\nSmena yopuvchi: ${currentUser.name}\n\nJami Savdo: ${fmtUZS(totals.sales)}\nNaqd Tushum: ${fmtUZS(totals.cash)}\nKarta Tushum: ${fmtUZS(totals.card)}\n➕ Pul Keldi (Tushum): ${fmtUZS(totals.inbound)}\nNasiya (Sotuv): ${fmtUZS(totals.nasiya)}\n➖ Xarajatlar: ${fmtUZS(totals.expenses)}\n\n<b>SOF TUSHUM: ${fmtUZS(net)}</b>\n<i>(Sof tushum = Naqd + Karta + Pul Keldi - Xarajat)</i>`;
 
     // PDF ni base64 ga o'girish va bot server orqali yuborish
     const reader = new FileReader();
@@ -136,8 +140,9 @@ export default function ShiftClose({ data, currentUser, onRefresh }: Props) {
       <h3>KUNLIK KASSA HISOBOTI</h3>
       <p style="text-align:center;font-size:0.9em;color:#888">${nowStr} | ${currentUser.name}</p><hr>
       <div class="row"><span class="label">Jami Savdo:</span><span class="val">${fmtUZS(totals.sales)}</span></div>
-      <div class="row"><span class="label">Naqd:</span><span class="val">${fmtUZS(totals.cash)}</span></div>
-      <div class="row"><span class="label">Karta:</span><span class="val">${fmtUZS(totals.card)}</span></div>
+      <div class="row"><span class="label">Naqd Tushum:</span><span class="val">${fmtUZS(totals.cash)}</span></div>
+      <div class="row"><span class="label">Karta Tushum:</span><span class="val">${fmtUZS(totals.card)}</span></div>
+      <div class="row"><span class="label">Pul Keldi:</span><span class="val" style="color:green">${fmtUZS(totals.inbound)}</span></div>
       <div class="row"><span class="label">Nasiya:</span><span class="val">${fmtUZS(totals.nasiya)}</span></div>
       <div class="row"><span class="label">Xarajatlar:</span><span class="val" style="color:red">${fmtUZS(totals.expenses)}</span></div>
       <div class="total"><span style="font-weight:700">SOF TUSHUM:</span><span style="font-weight:900;font-size:1.2em;color:#a07800">${fmtUZS(net)}</span></div>
@@ -217,6 +222,7 @@ export default function ShiftClose({ data, currentUser, onRefresh }: Props) {
                     { label: 'Jami Savdo', val: totals.sales, icon: <Lucide.TrendingUp size={20} />, color: 'var(--primary)' },
                     { label: 'Naqd Tushum', val: totals.cash, icon: <Lucide.Banknote size={20} />, color: '#27ae60' },
                     { label: 'Karta Tushum', val: totals.card, icon: <Lucide.CreditCard size={20} />, color: '#2980b9' },
+                    { label: 'Pul Keldi (Tushum)', val: totals.inbound, icon: <Lucide.CircleDollarSign size={20} />, color: 'var(--primary)' },
                     { label: 'Nasiya (Savdo)', val: totals.nasiya, icon: <Lucide.ClipboardList size={20} />, color: 'var(--danger)' },
                     { label: 'Xarajatlar', val: totals.expenses, icon: <Lucide.TrendingDown size={20} />, color: '#e67e22' },
                   ].map(({ label, val, icon, color }) => (
@@ -229,9 +235,8 @@ export default function ShiftClose({ data, currentUser, onRefresh }: Props) {
                   ))}
                 </div>
 
-                {/* Net total */}
                 <div className="shift-net-total">
-                  <span>SOF TUSHUM (Naqd+Karta−Xarajat)</span>
+                  <span>SOF TUSHUM (Naqd+Karta+Pul Keldi−Xarajat)</span>
                   <strong style={{ color: net >= 0 ? 'var(--primary)' : 'var(--danger)', fontSize: '1.2rem' }}>{fmtUZS(net)}</strong>
                 </div>
 
