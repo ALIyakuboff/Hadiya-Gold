@@ -8,6 +8,8 @@ import {
 } from 'recharts';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import { 
+  loadData, addProduct, sellProduct, updateGoldRate, 
+  addPaymentToDebt, updateSettings, exportData, importData,
   updateProduct, deleteProduct, fmtUZS, getLocalDate, addUser, updateUser, deleteUser,
   fmtLocalDateTime, mergeRemoteData
 } from './store';
