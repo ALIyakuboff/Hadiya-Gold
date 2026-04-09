@@ -103,7 +103,7 @@ Bugungi savdolar: ${JSON.stringify(minimizedSales)}
 Ombordagi tovarlar: ${JSON.stringify(minimizedProducts.slice(0, 30))}
 Jami qarz: ${fmtUZS(data.debts.reduce((s,d)=>s+(d.totalUZS-d.paidUZS),0))}`;
 
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+      const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
       const chat = model.startChat({
         history: [
           { role: 'user', parts: [{ text: systemPrompt }] },

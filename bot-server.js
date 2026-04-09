@@ -53,6 +53,15 @@ app.post('/api/sync', (req, res) => {
   }
 });
 
+app.get('/api/get-data', (req, res) => {
+  try {
+    const data = loadBotData();
+    res.json(data);
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
 app.get('/api/status', (req, res) => {
   const data = loadBotData();
   res.json({ ok: true, users: data.users?.length || 0, debts: data.debts?.length || 0 });

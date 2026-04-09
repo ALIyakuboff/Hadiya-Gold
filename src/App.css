@@ -862,13 +862,17 @@ input:focus, select:focus {
   .main-header h1 { font-size: 1rem !important; }
 }
 
-/* PWA safe area (iPhone notch/home bar) */
+/* PWA safe area (iPhone notch/home bar/dynamic island) */
 @supports (padding: max(0px)) {
   .sidebar {
+    padding-top: max(24px, env(safe-area-inset-top)) !important;
     padding-bottom: max(8px, env(safe-area-inset-bottom)) !important;
   }
   .main-content {
+    padding-top: max(12px, env(safe-area-inset-top)) !important;
     padding-bottom: max(90px, calc(70px + env(safe-area-inset-bottom))) !important;
+    padding-left: max(12px, env(safe-area-inset-left)) !important;
+    padding-right: max(12px, env(safe-area-inset-right)) !important;
   }
 }
 

@@ -158,6 +158,19 @@ export const addUser = (user: User) => {
   saveData(data);
 };
 
+export const mergeRemoteData = (remote: Partial<AppData>) => {
+  const local = loadData();
+  const merged: AppData = {
+    ...local,
+    users: remote.users && remote.users.length >= local.users.length ? remote.users : local.users,
+    debts: remote.debts && remote.debts.length >= local.debts.length ? remote.debts : local.debts,
+    sales: remote.sales && remote.sales.length >= local.sales.length ? remote.sales : local.sales,
+    products: remote.products && remote.products.length >= local.products.length ? remote.products : local.products,
+    goldRateUZS: remote.goldRateUZS || local.goldRateUZS,
+  };
+  saveData(merged);
+};
+
 export const updateUser = (id: string, updated: Partial<User>) => {
   const data = loadData();
   const index = data.users.findIndex(u => u.id === id);

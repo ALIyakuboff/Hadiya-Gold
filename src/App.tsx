@@ -8,10 +8,8 @@ import {
 } from 'recharts';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import { 
-  loadData, addProduct, sellProduct, updateGoldRate, 
-  addPaymentToDebt, updateSettings, exportData, importData,
   updateProduct, deleteProduct, fmtUZS, getLocalDate, addUser, updateUser, deleteUser,
-  fmtLocalDateTime
+  fmtLocalDateTime, mergeRemoteData
 } from './store';
 import { initTelegramBot } from './telegram';
 import { 
@@ -57,7 +55,8 @@ function App() {
   // Sync data to the standalone bot server
   const syncToBot = async (appData = data) => {
     try {
-      await fetch('http://localhost:3001/api/sync', {
+      const serverUrl = window.location.hostname === 'localhost' ? 'http://localhost:3001' : `${window.location.protocol}//${window.location.hostname}:3001`;
+      await fetch(`${serverUrl}/api/sync`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -68,6 +67,21 @@ function App() {
       });
     } catch (_) { /* Bot server may not be running */ }
   };
+
+  useEffect(() => {
+    const initData = async () => {
+      try {
+        const serverUrl = window.location.hostname === 'localhost' ? 'http://localhost:3001' : `${window.location.protocol}//${window.location.hostname}:3001`;
+        const resp = await fetch(`${serverUrl}/api/get-data`);
+        const remoteData = await resp.json();
+        if (remoteData && remoteData.users) {
+          mergeRemoteData(remoteData);
+          setData(loadData());
+        }
+      } catch (e) { console.warn('Server bilan bog\'lanishda xatolik (sync pull):', e); }
+    };
+    initData();
+  }, []);
 
   useEffect(() => {
     if (currentUser) syncToBot();
