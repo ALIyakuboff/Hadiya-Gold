@@ -57,7 +57,7 @@ function App() {
   // Sync data to the standalone bot server
   const syncToBot = async (appData = data) => {
     try {
-      await fetch('http://localhost:3001/api/sync', {
+      await fetch('/api/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

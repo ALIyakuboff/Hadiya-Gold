@@ -100,7 +100,7 @@ export default function ShiftClose({ data, currentUser, onRefresh }: Props) {
     reader.onloadend = async () => {
       const base64 = (reader.result as string).split(',')[1];
       try {
-        const resp = await fetch('http://localhost:3001/api/send-report', {
+        const resp = await fetch('/api/send-report', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ message: msg, pdfBase64: base64, filename: `kassa_${today}.pdf` }),
